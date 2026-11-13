@@ -5,6 +5,8 @@ const Database = require("better-sqlite3");
 const app = express();
 const PORT = 3000;
 app.use(express.json());
+app.use(express.static("public"));
+
 
 // 1) Conecta no arquivo do banco (cria se não existir)
 const db = new Database("biblioteca.db");
@@ -16,7 +18,9 @@ db.exec(`
     id     INTEGER PRIMARY KEY AUTOINCREMENT,
     titulo  TEXT NOT NULL,
     autor   TEXT NOT NULL,
-    ano     INTEGER
+    ano     INTEGER,
+    editora TEXT,
+    paginas INTEGER
     )
     `);
 
@@ -37,14 +41,21 @@ app.get("/livros/:id", (req, res) => {
 
 // 5) CADASTRAR VALIDAÇÃO SIMPLES
 app.post("/livros", (req, res) => {
-  const { titulo, autor, ano } = req.body;
+  const { titulo, autor, ano, editora, paginas } = req.body || {};
   if (!titulo || !autor) return res.status(400).json({ erro: "Informe titulo e autor" });
+  if (paginas && Number.isNaN(Number(paginas))){
+    return res.status(400).json({ erro: "Páginas deve ser número"});
+  }
 
   const info = db
-    .prepare("INSERT INTO livros (titulo, autor, ano) VALUES (?, ?, ?)")
-    .run(titulo, autor, Number(ano));
+    .prepare("INSERT INTO livros (titulo, autor, ano, editora, paginas) VALUES (?, ?, ?, ?, ?)")
+    .run(titulo, autor, Number(ano), editora || "", Number(paginas));
 
-  res.status(201).json({ id: info.lastInsertRowid, titulo, autor, ano: Number(ano) });
+  res.status(201).json({ id: info.lastInsertRowid, titulo, autor,
+    editora: editora || "",
+    paginas: Number(paginas),
+    ano: Number(ano)
+ });
 });
 
 // 6) APAGAR
